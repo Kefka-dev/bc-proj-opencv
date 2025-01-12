@@ -1,10 +1,11 @@
 import cv2
 from ultralytics import YOLO
 import math
+import torch
 
 video_path = "testvideos/main/ch01_20241022100000.mp4"
 video_path2 = "testvideos/main/ch03_20241022105505.mp4"
-cap = cv2.VideoCapture(video_path)
+cap = cv2.VideoCapture(0)
 
 MODEL = "yolov8x.pt"
 model = YOLO(MODEL)  # Load the model normally (WITHOUT classes=0 here)
@@ -14,12 +15,18 @@ font_scale = 0.9
 font_thickness = 2
 text_color = (0, 255, 0)
 
+if torch.cuda.is_available():
+    device = 'cuda'  # Use GPU if available
+else:
+    device = 'cpu'  # Fallback to CPU
+
+print(f"Using device: {device}")
 while True:
     ret, frame = cap.read()
     if not ret:
         break
 
-    results = model.predict(frame, stream=True, classes=0)  # Predict without class filtering
+    results = model.predict(frame, stream=True)  # Predict without class filtering
 
     for r in results:
         boxes = r.boxes
@@ -34,7 +41,7 @@ while True:
             cv2.rectangle(frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
 
             confidence = math.ceil((box.conf[0] * 100)) / 100
-            confidence_text = f"{class_name} {confidence:.1f}%"  # Include class name
+            confidence_text = f"{class_name} {confidence:.1f}"  # Include class name
 
             text_offset_y = -5
 

@@ -8,19 +8,19 @@ from getColorRange import *
 
 os.environ["QT_QPA_PLATFORM"] = "xcb"
 
-video_path = "testvideos/main/ch01_20241022100000.mp4"
-# video_path = "testvideos/main/ch03_20241022105505.mp4"
+#video_path = "testvideos/main/ch01_20241022100000.mp4"
+video_path = "testvideos/main/ch03_20241022105505.mp4"
 cap = cv2.VideoCapture(video_path)
 length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 fps    = cap.get(cv2.CAP_PROP_FPS)
 print("Num of frames: ", length, "FPS: ", fps)
 
 # Define color in BGR
-modra_z_tricka_z_videa = np.uint8([[[94, 28, 19]]])
-# modra_z_tricka_ine_svetelne_podmienky = np.uint8([[[11, 4, 1]]])
+# modra_z_tricka_z_videa = np.uint8([[[94, 28, 19]]])
+modra_z_tricka_ine_svetelne_podmienky = np.uint8([[[11, 4, 1]]])
 
-lower_bound, upper_bound = getHSVcolorRangeFromBGR(modra_z_tricka_z_videa, 2)
-# lower_bound, upper_bound = getDarkHSVcolorRangeFromBGR(modra_z_tricka_ine_svetelne_podmienky)
+# lower_bound, upper_bound = getHSVcolorRangeFromBGR(modra_z_tricka_z_videa, 2)
+lower_bound, upper_bound = getDarkHSVcolorRangeFromBGR(modra_z_tricka_ine_svetelne_podmienky)
 print("Lower bound: ", lower_bound, "Upper bound: ", upper_bound)
 
 # Create a window for displaying frames
@@ -69,7 +69,7 @@ while True:
 
                 # Draw a rectangle around each detected yellow object
                 cv2.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-                cv2.putText(frame, 'Modra', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
+                cv2.putText(frame, 'Cierna', (x, y - 10), cv2.FONT_HERSHEY_SIMPLEX, 0.9, (36, 255, 12), 2)
 
         # Show the frame with the drawn rectangles
         cv2.imshow('frame', frame)

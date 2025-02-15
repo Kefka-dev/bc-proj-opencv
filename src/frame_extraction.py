@@ -6,11 +6,11 @@ from ultralytics import YOLO
 video_path = "testvideos/main/ch01_20241022100000.mp4"
 video_path2 = "testvideos/main/ch03_20241022105505.mp4"
 # Output folder for frames and annotations
-output_folder = "video_frames"
+output_folder = "video_frames2"
 os.makedirs(output_folder, exist_ok=True)
 
 # Load YOLO model
-model = YOLO("yolo11n.pt")
+model = YOLO("yolos/yolo11n.pt")
 
 # Open video
 cap = cv2.VideoCapture(video_path2)
@@ -38,25 +38,24 @@ while True:
 
     # Extract every skip_frames frame
     if frame_count % skip_frames == 0:
-        # Detect objects using YOLO
-        results = model(frame)
+        # Detect only person class
+        results = model(frame, classes=0)
 
         # Filter results to only include people (class 0 in COCO dataset)
         people_detections = []
         for result in results:
             for box in result.boxes:
-                if box.cls == 0:  # Class 0 is 'person' in COCO dataset
-                    # Convert bounding box to YOLO format (normalized x_center, y_center, width, height)
-                    xmin, ymin, xmax, ymax = box.xyxy[0].tolist()
-                    frame_width = frame.shape[1]
-                    frame_height = frame.shape[0]
+                # Convert bounding box to YOLO format (normalized x_center, y_center, width, height)
+                xmin, ymin, xmax, ymax = box.xyxy[0].tolist()
+                frame_width = frame.shape[1]
+                frame_height = frame.shape[0]
 
-                    x_center = (xmin + xmax) / 2 / frame_width
-                    y_center = (ymin + ymax) / 2 / frame_height
-                    width = (xmax - xmin) / frame_width
-                    height = (ymax - ymin) / frame_height
+                x_center = (xmin + xmax) / 2 / frame_width
+                y_center = (ymin + ymax) / 2 / frame_height
+                width = (xmax - xmin) / frame_width
+                height = (ymax - ymin) / frame_height
 
-                    people_detections.append((0, x_center, y_center, width, height))  # Class 0 is 'person'
+                people_detections.append((0, x_center, y_center, width, height))  # Class 0 is 'person'
 
         # If people are detected, save the frame and create annotation file
         if people_detections:

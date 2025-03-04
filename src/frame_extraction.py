@@ -3,17 +3,21 @@ import os
 from ultralytics import YOLO
 
 # Path to video
-video_path = "testvideos/main/ch01_20241022100000.mp4"
-video_path2 = "testvideos/main/ch03_20241022105505.mp4"
+
+video_path = "..\\testvideos\\ch02_20241022130405.mp4"
 # Output folder for frames and annotations
-output_folder = "video_frames2"
+output_folder = "..\\dataset2\\ch2"
+output_images = os.path.join(output_folder, "images")
+output_labels = os.path.join(output_folder, "labels")
 os.makedirs(output_folder, exist_ok=True)
+os.makedirs(output_images, exist_ok=True)
+os.makedirs(output_labels, exist_ok=True)
 
 # Load YOLO model
-model = YOLO("yolos/yolo11n.pt")
+model = YOLO("E:\\Skola\\FEI\\bakalarka\\bc-proj-opencv\\src\\finetunning\\runs\\detect\\train\\weights\\best.pt")
 
 # Open video
-cap = cv2.VideoCapture(video_path2)
+cap = cv2.VideoCapture(video_path)
 if not cap.isOpened():
     print("Failed to open video")
     exit()
@@ -60,12 +64,12 @@ while True:
         # If people are detected, save the frame and create annotation file
         if people_detections:
             # Save frame as image
-            frame_filename = os.path.join(output_folder, f'frame_{saved_count:04d}.jpg')
+            frame_filename = os.path.join(output_images, f'frame_{saved_count:04d}.jpg')
             cv2.imwrite(frame_filename, frame)
             print("Frame num ", frame_count, "saved with people detected")
 
             # Create annotation file in YOLO format
-            annotation_filename = os.path.join(output_folder, f'frame_{saved_count:04d}.txt')
+            annotation_filename = os.path.join(output_labels, f'frame_{saved_count:04d}.txt')
             with open(annotation_filename, 'w') as f:
                 for detection in people_detections:
                     class_id, x_center, y_center, width, height = detection

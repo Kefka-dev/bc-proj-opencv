@@ -7,7 +7,7 @@ import re # Import regex module for checking directory names
 
 # --- Configuration ---
 # Define the PARENT directory containing all ch{n} folders
-base_dataset_path = "../../dataset2" # CHANGE THIS to your main directory
+base_dataset_path = "../../dataset_v3" # CHANGE THIS to your main directory
 
 # Define train-validation-test split ratios
 train_ratio = 0.7
@@ -71,5 +71,5 @@ with os.scandir(base_dataset_path) as entries:
     for entry in entries:
         if entry.is_dir() and entry.name.startswith("ch"):
             channel_path = entry.path
-            split_channel(channel_path, train_ratio, val_ratio, test_ratio)
+            split_channel(channel_path, train_ratio, val_ratio)
             print("Channel ", entry.name, "Split complete.")

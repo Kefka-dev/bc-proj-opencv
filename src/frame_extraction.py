@@ -4,9 +4,9 @@ from ultralytics import YOLO
 
 # Path to video
 
-video_path = "../testvideos/main/ch14_20241022100000.mp4"
+video_path = "../testvideos/main/ch01_20241022101729.mp4"
 # Output folder for frames and annotations
-output_folder = "../dataset2/ch14"
+output_folder = "../dataset_v3/ch1"
 output_images = os.path.join(output_folder, "images")
 output_labels = os.path.join(output_folder, "labels")
 os.makedirs(output_folder, exist_ok=True)
@@ -14,7 +14,7 @@ os.makedirs(output_images, exist_ok=True)
 os.makedirs(output_labels, exist_ok=True)
 
 # Load YOLO model
-model = YOLO("/home/patrik/Documents/bc-proj-opencv/yolos/yolo11l.pt")
+model = YOLO("finetunning/runs/detect/train6/weights/best.pt")
 
 # Open video
 cap = cv2.VideoCapture(video_path)
@@ -28,14 +28,15 @@ total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 print("FPS: ", fps, ", Total frames: ", total_frames)
 
 #number of frames to extract 
-n = 500
+n = 250
+offset = 250
 
 # Calculate interval to extract 1,000 frames
 skip_frames = total_frames // n  # Extract every Nth frame
 print("Extracting every", skip_frames, "th frame")
 
 frame_count = 0
-saved_count = 0
+saved_count = 0 + offset
 
 # Loop to extract frames
 while True:
@@ -68,12 +69,12 @@ while True:
         # if people_detections:
 
         # Save frame as image
-        frame_filename = os.path.join(output_images, f'ch14_frame_{saved_count:04d}.jpg')
+        frame_filename = os.path.join(output_images, f'ch1_frame_{saved_count:04d}.jpg')
         cv2.imwrite(frame_filename, frame)
         print("Frame num ", frame_count, "saved with people detected")
 
         # Create annotation file in YOLO format
-        annotation_filename = os.path.join(output_labels, f'ch14_frame_{saved_count:04d}.txt')
+        annotation_filename = os.path.join(output_labels, f'ch1_frame_{saved_count:04d}.txt')
         with open(annotation_filename, 'w') as f:
             for detection in people_detections:
                 class_id, x_center, y_center, width, height = detection
@@ -82,7 +83,7 @@ while True:
         saved_count += 1
 
         # Stop if we've extracted 1,000 frames
-        if saved_count >= n:
+        if saved_count >= n+offset:
             break
 
     frame_count += 1

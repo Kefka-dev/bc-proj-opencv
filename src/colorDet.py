@@ -6,10 +6,10 @@ from cv2 import WINDOW_NORMAL
 
 from getColorRange import *
 
-os.environ["QT_QPA_PLATFORM"] = "xcb"
+# os.environ["QT_QPA_PLATFORM"] = "xcb"
 
 #video_path = "testvideos/main/ch01_20241022100000.mp4"
-video_path = "testvideos/main/ch03_20241022105505.mp4"
+video_path = "../testvideos/main/ch03_20241022100000.mp4"
 cap = cv2.VideoCapture(video_path)
 length = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
 fps    = cap.get(cv2.CAP_PROP_FPS)

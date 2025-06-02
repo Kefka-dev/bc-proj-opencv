@@ -31,11 +31,11 @@ COLOR_NAME_MAP = {
     "orange": ([0, 10],),
     "yellow": ([10, 20],),
     "green": ([36, 85],),  # Zelená má často širší rozsah
-    "blue": ([90, 130],),  # Upravené pre lepší stred modrej
+    "blue": ([97, 115],),  # Upravené pre lepší stred modrej
 }
-ACHROMATIC_S_THRESHOLD = 80
-ACHROMATIC_V_THRESHOLD_DARK = 80
-ACHROMATIC_V_THRESHOLD_BRIGHT = 200
+ACHROMATIC_S_THRESHOLD = 110
+ACHROMATIC_V_THRESHOLD_DARK = 90
+ACHROMATIC_V_THRESHOLD_BRIGHT = 160
 
 # Globálne počítadlo farieb
 color_counters = defaultdict(int)
@@ -54,35 +54,44 @@ def get_dominant_color_name(hsv_tshirt_roi, hue_bins=18):
     avg_s = float(np.mean(hsv_tshirt_roi[:, :, 1]))  # Priemerná sýtosť celej ROI
     avg_v = float(np.mean(hsv_tshirt_roi[:, :, 2]))  # Priemerný jas celej ROI
 
-    # Prahové hodnoty (definujte ich globálne alebo ich odovzdajte funkcii)
-    # ACHROMATIC_S_THRESHOLD = 65
-    # ACHROMATIC_V_THRESHOLD_DARK = 70
-    # ACHROMATIC_V_THRESHOLD_BRIGHT = 200
-    if avg_v < ACHROMATIC_V_THRESHOLD_DARK:
+    # # Detekcia čiernej farby (nízky jas)
+    if avg_v <= ACHROMATIC_V_THRESHOLD_DARK:
         return "black", None, avg_s, avg_v
-    # if avg_s < ACHROMATIC_S_THRESHOLD:
-    #     return "white", None, avg_s, avg_v
 
-    # Maska pre chromatické farby
+    # Detekcia bielej farby (nízka sýtosť a vysoký jas)
+    if avg_s < ACHROMATIC_S_THRESHOLD and avg_v > ACHROMATIC_V_THRESHOLD_BRIGHT:
+        return "white", None, avg_s, avg_v
+
+    if avg_s < 60:
+        return "white", None, avg_s, avg_v
+    # Maska pre chromatické farby (farebné, nie čierno-bielo-sivé)
     mask = cv2.inRange(hsv_tshirt_roi,
                        np.array([0, ACHROMATIC_S_THRESHOLD, ACHROMATIC_V_THRESHOLD_DARK]),
                        np.array([179, 255, ACHROMATIC_V_THRESHOLD_BRIGHT]))
 
     if cv2.countNonZero(mask) == 0:
-        # Ak maska všetko odfiltruje, stále máme avg_s a avg_v z celej ROI
-        return "N/A (maska)", None, avg_s, avg_v
+        # Ak maska všetko odfiltruje, môže ísť o sivú farbu alebo neidentifikovateľnú farbu
+        # Skontrolujeme či je to sivá (stredný jas, nízka sýtosť)
+        if avg_s < ACHROMATIC_S_THRESHOLD:
+            if ACHROMATIC_V_THRESHOLD_DARK <= avg_v <= ACHROMATIC_V_THRESHOLD_BRIGHT:
+                return "white", None, avg_s, avg_v  # Svetlosivá sa klasifikuje ako biela
+            else:
+                return "unknown color", None, avg_s, avg_v
+        return "unknown color", None, avg_s, avg_v
 
+    # Výpočet histogramu pre Hue kanál
     hist_hue = cv2.calcHist([hsv_tshirt_roi], [0], mask, [hue_bins], [0, 180])
     dominant_hue_bin = np.argmax(hist_hue)
     dominant_hue_value = float((dominant_hue_bin + 0.5) * (180 / hue_bins))
 
+    # Kontrola zhody s preddefinovanými farbami
     for color_name, hue_ranges in COLOR_NAME_MAP.items():
         for hue_range in hue_ranges:
             if hue_range[0] <= dominant_hue_value <= hue_range[1]:
                 return color_name, dominant_hue_value, avg_s, avg_v
 
-    # Ak sa nenájde zhoda v mape, vrátime vypočítaný Hue
-    return f"H:{dominant_hue_value:.0f}", dominant_hue_value, avg_s, avg_v
+    # Ak sa nenájde zhoda v mape, vrátime "unknown color"
+    return "unknown color", dominant_hue_value, avg_s, avg_v
 
 
 def draw_color_counters(frame):
@@ -157,21 +166,17 @@ def process_and_draw_detections(frame_to_draw_on, yolo_result_object, update_cou
 
     for box_obj in yolo_result_object.boxes:
         x1, y1, x2, y2 = map(int, box_obj.xyxy[0])
-        # ... (získanie confidence, class_name ako predtým) ...
+        # získanie confidence, class_name
         confidence = float(box_obj.conf[0])
         class_name = class_names_map[int(box_obj.cls[0])]
 
-        # Vykreslenie rámčeka osoby a konfidencie (ako predtým)
+        # Vykreslenie rámčeka osoby a konfidencie
         cv2.rectangle(annotated_frame, (x1, y1), (x2, y2), (255, 0, 0), 2)
         confidence_text = f"{class_name} {confidence * 100:.0f}%"
         text_y_offset_confidence = -25
         cv2.putText(annotated_frame, confidence_text, (x1, y1 + text_y_offset_confidence),
                     FONT, FONT_SCALE * 0.8, TEXT_COLOR_CONFIDENCE, FONT_THICKNESS)
 
-        person_roi_on_annotated_frame = annotated_frame[y1:y2, x1:x2]  # ROI z frame, kde sa už môže kresliť
-        # Pre analýzu farieb je lepšie použiť ROI z pôvodného frame_to_draw_on (pred kreslením naň)
-        # alebo ešte lepšie, z pôvodného neanotovaného frame, ak by sa `frame_to_draw_on` už anotoval.
-        # V tomto prípade `frame_to_draw_on` je na začiatku kópia pôvodného frame, takže je to OK.
         person_roi_for_color_analysis = frame_to_draw_on[y1:y2, x1:x2]
 
         tshirt_color_name_str = "ROI Chyba"
@@ -400,9 +405,9 @@ def main_video_loop(video_path, model_path):
 # --- Spustenie skriptu ---
 if __name__ == '__main__':
     # Pre jednoduchosť použijeme predvolené hodnoty definované vyššie
-    selected_video_path = video_path_ch15
-    # selected_model_path = MODEL_PATH_DEFAULT  # Uistite sa, že cesta k vášmu .pt súboru je správna
-    selected_model_path = "../yolos/yolo11m.pt"  # Uistite sa, že cesta k vášmu .pt súboru je správna
+    selected_video_path = video_path_ch4
+    selected_model_path = MODEL_PATH_DEFAULT  # Uistite sa, že cesta k vášmu .pt súboru je správna
+    # selected_model_path = "../yolos/yolo11m.pt"  # Uistite sa, že cesta k vášmu .pt súboru je správna
 
     # Prípadne môžete pridať načítanie ciest z argumentov príkazového riadku
     # import argparse
@@ -412,5 +417,5 @@ if __name__ == '__main__':
     # args = parser.parse_args()
     # main_video_loop(args.video, args.model)
 
-    # process_single_image("../obrazky_bc_praca/GetImage.jpeg", "../yolos/yolo11m.pt")
-    main_video_loop(selected_video_path, selected_model_path)
+    process_single_image("../obrazky_bc_praca/GetImage.jpeg", "../yolos/yolo11m.pt")
+    # main_video_loop(selected_video_path, selected_model_path)
